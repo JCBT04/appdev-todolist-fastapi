@@ -1,17 +1,11 @@
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
+import os
 
-# Replace with your actual PostgreSQL connection string
-DATABASE_URL = "postgresql://username:password@localhost/dbname"
+DATABASE_URL = os.getenv("DATABASE_URL", "postgresql://appdev_todolist_fastapi_db_user:gwFcEye7sx2P6fzuKurqd3FBpq3ZFEzs@dpg-cvv7989r0fns73a6398g-a/appdev_todolist_fastapi_db")
 
-# Create the SQLAlchemy engine and session local
-engine = create_engine(DATABASE_URL, echo=True)
+engine = create_engine(DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
-# Base class for models
 Base = declarative_base()
-
-# Initialize the database tables
-def init_db():
-    Base.metadata.create_all(bind=engine)

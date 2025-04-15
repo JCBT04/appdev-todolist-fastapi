@@ -1,45 +1,45 @@
-from models import Task
-from schemas import TaskCreate, TaskUpdate
+from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.orm import Session
+import crud, models, schemas, database
 
-# Create a new task
-def create_task(db: Session, task: TaskCreate):
-    db_task = Task(title=task.title, completed=task.completed)
-    db.add(db_task)
-    db.commit()
-    db.refresh(db_task)
+# Create the tables
+models.Base.metadata.create_all(bind=database.engine)
+
+app = FastAPI()
+
+# Dependency to get DB session
+def get_db():
+    db = database.SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+@app.get("/tasks", response_model=list[schemas.TaskBase])
+def read_tasks(filter: str = "all", db: Session = Depends(get_db)):
+    return crud.get_tasks(db, filter_by=filter)
+
+@app.post("/tasks", response_model=schemas.TaskBase)
+def create_new_task(task: schemas.TaskCreate, db: Session = Depends(get_db)):
+    return crud.create_task(db, task)
+
+@app.get("/tasks/{task_id}", response_model=schemas.TaskBase)
+def read_task(task_id: int, db: Session = Depends(get_db)):
+    db_task = crud.get_task(db, task_id)
+    if db_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
     return db_task
 
-# Get all tasks (with optional filter)
-def get_tasks(db: Session, filter_by: str = "all"):
-    if filter_by == "completed":
-        return db.query(Task).filter(Task.completed == True).all()
-    elif filter_by == "pending":
-        return db.query(Task).filter(Task.completed == False).all()
-    return db.query(Task).all()
+@app.put("/tasks/{task_id}", response_model=schemas.TaskBase)
+def update_existing_task(task_id: int, task: schemas.TaskUpdate, db: Session = Depends(get_db)):
+    db_task = crud.update_task(db, task_id, task)
+    if db_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return db_task
 
-# Get a task by its ID
-def get_task(db: Session, task_id: int):
-    return db.query(Task).filter(Task.id == task_id).first()
-
-# Update a task by ID
-def update_task(db: Session, task_id: int, task: TaskUpdate):
-    db_task = db.query(Task).filter(Task.id == task_id).first()
-    if db_task:
-        if task.title is not None:
-            db_task.title = task.title
-        if task.completed is not None:
-            db_task.completed = task.completed
-        db.commit()
-        db.refresh(db_task)
-        return db_task
-    return None
-
-# Delete a task by ID
-def delete_task(db: Session, task_id: int):
-    db_task = db.query(Task).filter(Task.id == task_id).first()
-    if db_task:
-        db.delete(db_task)
-        db.commit()
-        return db_task
-    return None
+@app.delete("/tasks/{task_id}", response_model=schemas.TaskBase)
+def delete_existing_task(task_id: int, db: Session = Depends(get_db)):
+    db_task = crud.delete_task(db, task_id)
+    if db_task is None:
+        raise HTTPException(status_code=404, detail="Task not found")
+    return db_task
