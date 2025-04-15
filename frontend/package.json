@@ -1,5 +1,5 @@
 {
-    "homepage": "https://jcbt04.github.io/appdev-todolist-fullstack/",
+    "homepage": "https://appdev-todolist-fastapi.vercel.app/",
     
   "name": "frontend",
   "private": true,
@@ -9,10 +9,7 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview",
-
-    "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist"
+    "preview": "vite preview"
   },
 
   "dependencies": {
